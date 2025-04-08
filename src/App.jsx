@@ -15,6 +15,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
+import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 
 const ROLES = {
   now: "Bama Now",
@@ -33,6 +34,23 @@ function App() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const handleDelete = async (msg) => {
+		if (confirm("Yakin mau hapus pesan ini?")) {
+			const docRef = doc(db, "messages", msg.id);
+			await deleteDoc(docRef);
+		}
+	};
+	
+	const handleEdit = async (msg) => {
+		const newText = prompt("Edit pesan:", msg.text);
+		if (newText !== null && newText.trim() !== "") {
+			const docRef = doc(db, "messages", msg.id);
+			await updateDoc(docRef, {
+				text: newText,
+				editedAt: new Date().toISOString(),
+			});
+		}
+	};
 
   // Handle dark mode class
   useEffect(() => {
@@ -58,7 +76,10 @@ function App() {
 
     const q = query(collection(db, "messages"), orderBy("createdAt"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map((doc) => doc.data());
+      const messages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setChat(messages);
     });
 
@@ -164,9 +185,12 @@ function App() {
       <main className="flex-1 w-full max-w-md bg-white dark:bg-gray-800 shadow-md rounded p-4 overflow-y-auto h-[60vh] mb-4">
         {chat.map((msg, idx) => (
           <ChatBubble
-            key={idx}
+            key={msg.id || idx}
             msg={msg}
             isCurrent={msg.role === currentRole}
+            currentUserUid={user.uid}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         ))}
         <div ref={messagesEndRef} />
@@ -174,6 +198,14 @@ function App() {
 
       {/* Footer */}
       <footer className="bg-white dark:bg-gray-800 shadow-inner px-4 py-3 w-full max-w-md rounded-t-xl">
+        <div className="flex justify-center">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            👤 Current Bama:{" "}
+            <span className="font-medium">
+              {currentRole === "now" ? "Now" : "Monarch"}
+            </span>
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() =>
@@ -191,18 +223,25 @@ function App() {
               className="w-6 h-6"
             />
           </button>
-          <input
-            className="flex-1 p-2 rounded border dark:bg-gray-800 dark:border-gray-600"
-            type="text"
+          <textarea
+            className="flex-1 p-2 rounded border resize-none overflow-hidden dark:bg-gray-800 dark:border-gray-600"
+            rows={1}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+
+              // Optional: auto-expand
+              e.target.style.height = "auto"; // Reset dulu
+              e.target.style.height = `${e.target.scrollHeight}px`; // Expand sesuai konten
+            }}
             placeholder="Type your message..."
           />
+
           <button
             onClick={handleSend}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
+            className="bg-gray-900 text-white px-4 py-2 rounded"
           >
-            Send
+            ➤
           </button>
         </div>
       </footer>
