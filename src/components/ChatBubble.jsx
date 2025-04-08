@@ -16,7 +16,7 @@ const ChatBubble = ({ msg, isCurrent, currentUserUid, onDelete, onEdit }) => {
           className={`px-4 py-2 rounded-2xl ${
             isCurrent
               ? "bg-gray-900 text-white rounded-br-none"
-              : "bg-white text-black rounded-bl-none"
+              : "bg-gray-200 text-black rounded-bl-none"
           }`}
         >
           {msg.text}
