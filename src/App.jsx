@@ -1,6 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ChatBubble from "./components/ChatBubble";
-import { useRef } from "react";
+import { db, auth } from "./firebase";
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 
 const ROLES = {
   now: "Bama Now",
@@ -11,50 +25,143 @@ function App() {
   const messagesEndRef = useRef(null);
   const [currentRole, setCurrentRole] = useState("now");
   const [input, setInput] = useState("");
-  const [chat, setChat] = useState(() => {
-    const saved = localStorage.getItem("bama_chat");
-    return saved ? JSON.parse(saved) : [];
+  const [chat, setChat] = useState([]);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode");
+    return saved === "true";
   });
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
+  // Handle dark mode class
   useEffect(() => {
-    localStorage.setItem("bama_chat", JSON.stringify(chat));
-  }, [chat]);
+    localStorage.setItem("darkMode", darkMode);
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
 
+  // Firebase Auth listener
   useEffect(() => {
-    localStorage.setItem("bama_chat", JSON.stringify(chat));
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat]);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const sendMessage = () => {
+  // Fetch chat messages from Firestore
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, "messages"), orderBy("createdAt"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const messages = snapshot.docs.map((doc) => doc.data());
+      setChat(messages);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleLogin = () => {
+    signInWithEmailAndPassword(auth, email, password).catch((err) =>
+      alert(err.message)
+    );
+  };
+
+  const handleRegister = () => {
+    createUserWithEmailAndPassword(auth, email, password).catch((err) =>
+      alert(err.message)
+    );
+  };
+
+  const handleLogout = () => {
+    signOut(auth);
+  };
+
+  const handleSend = async () => {
     if (!input.trim()) return;
 
-    const newMessage = {
+    await addDoc(collection(db, "messages"), {
       text: input,
       role: currentRole,
+      uid: user.uid,
+      createdAt: serverTimestamp(),
       timestamp: new Date().toISOString(),
-    };
+    });
 
-    setChat([...chat, newMessage]);
     setInput("");
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-6 px-4">
-      <h1 className="text-2xl font-bold mb-4">Bama Monarch Chat</h1>
-
-      <div className="mb-4">
-        <select
-          value={currentRole}
-          onChange={(e) => setCurrentRole(e.target.value)}
-          className="p-2 rounded border"
-        >
-          <option value="now">Bama Now</option>
-          <option value="monarch">Bama Monarch</option>
-        </select>
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold mb-4">Login / Register</h2>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          className="mb-2 p-2 rounded bg-white dark:bg-gray-800"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          className="mb-4 p-2 rounded bg-white dark:bg-gray-800"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={handleRegister}
+            className="bg-green-500 px-4 py-2 rounded text-white"
+          >
+            Register
+          </button>
+          <button
+            onClick={handleLogin}
+            className="bg-blue-500 px-4 py-2 rounded text-white"
+          >
+            Login
+          </button>
+        </div>
       </div>
-      <div ref={messagesEndRef} />
+    );
+  }
 
-      <div className="flex-1 w-full max-w-md bg-white shadow-md rounded p-4 overflow-y-auto h-[60vh] mb-4">
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white flex flex-col items-center">
+      {/* Header */}
+      <header className="w-full bg-white dark:bg-gray-800 px-4 py-2 shadow-md flex justify-between items-center">
+        <div>
+          <h1 className="text-lg font-bold">Bama Monarch Chat</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            👤 Current Bama:{" "}
+            <span className="font-medium">
+              {currentRole === "now" ? "Now" : "Monarch"}
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded"
+          >
+            {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 bg-red-500 text-white rounded"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+
+      {/* Chat Area */}
+      <main className="flex-1 w-full max-w-md bg-white dark:bg-gray-800 shadow-md rounded p-4 overflow-y-auto h-[60vh] mb-4">
         {chat.map((msg, idx) => (
           <ChatBubble
             key={idx}
@@ -62,64 +169,43 @@ function App() {
             isCurrent={msg.role === currentRole}
           />
         ))}
-      </div>
-      <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} />
+      </main>
 
-      <div className="flex justify-between w-full max-w-md">
-        <button
-          onClick={() => {
-            if (confirm("Are you sure you want to delete all chat?")) {
-              setChat([]);
-              localStorage.removeItem("bama_chat");
+      {/* Footer */}
+      <footer className="bg-white dark:bg-gray-800 shadow-inner px-4 py-3 w-full max-w-md rounded-t-xl">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() =>
+              setCurrentRole(currentRole === "now" ? "monarch" : "now")
             }
-          }}
-          className="text-sm text-red-500 underline mb-2"
-        >
-          Clear All Chat
-        </button>
-        {/* gap */}
-        <button
-          onClick={() => {
-            const text = chat
-              .map((m) => {
-                const name = m.role === "now" ? "Bama Now" : "Bama Monarch";
-                return `[${new Date(m.timestamp).toLocaleString()}] ${name}: ${
-                  m.text
-                }`;
-              })
-              .join("\n");
-
-            const blob = new Blob([text], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `bama_chat_${
-              new Date().toISOString().split("T")[0]
-            }.txt`;
-            link.click();
-            URL.revokeObjectURL(url);
-          }}
-          className="text-sm text-blue-500 underline mb-2 ml-4"
-        >
-          Export Chat
-        </button>
-      </div>
-      <div className="w-full max-w-md flex gap-2">
-        <input
-          className="flex-1 p-2 rounded border"
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-        />
-        <button
-          onClick={sendMessage}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Send
-        </button>
-      </div>
+            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
+          >
+            <img
+              src={
+                currentRole === "now"
+                  ? "/images/icon/pwa-192x192.png"
+                  : "/images/icon/pwa-512x512.png"
+              }
+              alt="role icon"
+              className="w-6 h-6"
+            />
+          </button>
+          <input
+            className="flex-1 p-2 rounded border dark:bg-gray-800 dark:border-gray-600"
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+          />
+          <button
+            onClick={handleSend}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Send
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }
