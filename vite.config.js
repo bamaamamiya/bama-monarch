@@ -16,17 +16,17 @@ export default defineConfig({
         description: "One-way chat with yourself",
         theme_color: "#ffffff",
         icons: [
-          {
-            src: "images/icon/pwa-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "images/icon/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-        ],
+					{
+						src: "/images/icon/pwa-192x192.png", // ← root-based path
+						sizes: "192x192",
+						type: "image/png",
+					},
+					{
+						src: "/images/icon/pwa-512x512.png",
+						sizes: "512x512",
+						type: "image/png",
+					},
+				],
       },
     }),
   ],
