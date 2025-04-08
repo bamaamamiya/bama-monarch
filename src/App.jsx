@@ -184,8 +184,8 @@ function App() {
             <img
               src={
                 currentRole === "now"
-                  ? "🧑"
-                  : "🧔"
+                  ? "/images/icon/192.jpg"
+                  : "/images/icon/1922.jpg"
               }
               alt="role icon"
               className="w-6 h-6"
