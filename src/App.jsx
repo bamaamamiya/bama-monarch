@@ -155,28 +155,29 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white flex flex-col items-center">
       {/* Header */}
-      <header className="w-full bg-white dark:bg-gray-800 px-4 py-2 shadow-md flex justify-between items-center sticky top-0 z-20">
+      <header className="w-full bg-white dark:bg-gray-800 px-4 py-2 shadow-md flex justify-between items-center sticky top-0 z-20 gap-2">
         <div>
           <h1 className="text-lg font-bold">Bama Monarch Chat</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            👤 Current Bama:{" "}
+          <p className="text-sm text-gray-600 dark:text-gray-300 w-auto">
+            {/* 👤 Current Bama:{" "}
             <span className="font-medium">
               {currentRole === "now" ? "Now" : "Monarch"}
-            </span>
+            </span> */}
+						rich, strategic, and ready to move resources like a king.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded"
+            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg"
           >
-            {darkMode ? "☀️ Light" : "🌙 Dark"}
+            {darkMode ? "☀️" : "🌙"}
           </button>
           <button
             onClick={handleLogout}
             className="px-3 py-1 bg-red-500 text-white rounded"
           >
-            Logout
+						➜
           </button>
         </div>
       </header>
