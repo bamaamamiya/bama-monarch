@@ -155,7 +155,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white flex flex-col items-center">
       {/* Header */}
-      <header className="w-full bg-white dark:bg-gray-800 px-4 py-2 shadow-md flex justify-between items-center">
+      <header className="w-full bg-white dark:bg-gray-800 px-4 py-2 shadow-md flex justify-between items-center sticky top-0 z-20">
         <div>
           <h1 className="text-lg font-bold">Bama Monarch Chat</h1>
           <p className="text-sm text-gray-600 dark:text-gray-300">
